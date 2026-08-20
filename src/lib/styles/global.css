@@ -1,0 +1,23 @@
+:root {
+	--color-bg: #000;
+	--color-star-wars-yellow: #ffe81f;
+
+	--space-2xs: 0.5rem;
+	--space-xs: 1rem;
+	--space-sm: 1.5rem;
+	--space-md: 2rem;
+	--space-lg: 3rem;
+
+	--font-crawl: 'Arial Narrow', Arial, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	background: var(--color-bg);
+}
