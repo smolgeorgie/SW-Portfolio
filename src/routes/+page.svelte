@@ -1,6 +1,7 @@
 <script>
 	import { Canvas } from '@threlte/core';
 	import LightsaberScene from '$lib/components/LightsaberScene.svelte';
+	import Starfield from '$lib/components/Starfield.svelte';
 
 	const factions = [
 		{
@@ -22,6 +23,8 @@
 </script>
 
 <main class="page">
+	<Starfield />
+
 	<div class="scene" aria-hidden="true">
 		<Canvas>
 			<LightsaberScene />
