@@ -2,15 +2,57 @@
 	import { T, useThrelte, useTask } from '@threlte/core';
 	import { useGltf } from '@threlte/extras';
 	import { Box3, Color, Mesh, Vector3 } from 'three';
+	import { BloomEffect, EffectComposer, EffectPass, KernelSize, RenderPass } from 'postprocessing';
 
 	const gltf = useGltf('/models/lightsaber.glb');
-	const { size } = useThrelte();
+	const { size, renderer, scene, camera, autoRender, renderStage } = useThrelte();
 
 	const CAMERA_FOV = 35;
-	const FRAME_PADDING = 1.05;
+	const FRAME_PADDING = 1.15;
 	const MAX_PEEK = 0.5;
 	const POINTER_EASE = 0.08;
 	const GLOW_COLOR = new Color('#ff2a2a');
+
+	const BLOOM_LUMINANCE_THRESHOLD = 0.65;
+	const BLOOM_LUMINANCE_SMOOTHING = 0.2;
+	const BLOOM_INTENSITY = 3;
+	const BLOOM_MULTISAMPLING = 4;
+
+	const composer = new EffectComposer(renderer, {
+		multisampling: Math.min(BLOOM_MULTISAMPLING, renderer.capabilities.maxSamples)
+	});
+
+	const renderPass = new RenderPass(scene, camera.current);
+	const bloomEffect = new BloomEffect({
+		luminanceThreshold: BLOOM_LUMINANCE_THRESHOLD,
+		luminanceSmoothing: BLOOM_LUMINANCE_SMOOTHING,
+		intensity: BLOOM_INTENSITY,
+		mipmapBlur: false,
+		kernelSize: KernelSize.HUGE
+	});
+	const bloomPass = new EffectPass(camera.current, bloomEffect);
+
+	composer.addPass(renderPass);
+	composer.addPass(bloomPass);
+
+	$effect(() => {
+		composer.setSize(size.current.width, size.current.height);
+	});
+
+	$effect(() => {
+		const wasAutoRendering = autoRender.current;
+		autoRender.set(false);
+		return () => autoRender.set(wasAutoRendering);
+	});
+
+	useTask(
+		(delta) => {
+			renderPass.mainCamera = camera.current;
+			bloomPass.mainCamera = camera.current;
+			composer.render(delta);
+		},
+		{ stage: renderStage, autoInvalidate: false }
+	);
 
 	let roll = $state(0);
 	let peekX = $state(0);
@@ -18,6 +60,14 @@
 	let targetRoll = 0;
 	let targetPeekX = 0;
 	let targetPeekY = 0;
+
+	let viewportWidth = $state(window.innerWidth);
+	let viewportHeight = $state(window.innerHeight);
+
+	function handleResize() {
+		viewportWidth = window.innerWidth;
+		viewportHeight = window.innerHeight;
+	}
 
 	/** @param {PointerEvent} event */
 	function handlePointerMove(event) {
@@ -84,7 +134,7 @@
 		const boxSize = box.getSize(new Vector3());
 		const center = box.getCenter(new Vector3());
 
-		const aspect = size.current.width / size.current.height;
+		const aspect = viewportWidth / viewportHeight;
 		const verticalFov = (CAMERA_FOV * Math.PI) / 180;
 		const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * aspect);
 
@@ -103,7 +153,7 @@
 			if (!(child instanceof Mesh)) return;
 			if (child.material?.name !== 'LightSaberEmitterMat') return;
 			child.material.emissive = GLOW_COLOR;
-			child.material.emissiveIntensity = 5;
+			child.material.emissiveIntensity = 8;
 			child.material.toneMapped = false;
 		});
 
@@ -111,7 +161,7 @@
 	}
 </script>
 
-<svelte:window onpointermove={handlePointerMove} />
+<svelte:window onpointermove={handlePointerMove} onresize={handleResize} />
 
 <T.AmbientLight intensity={0.4} />
 
@@ -130,14 +180,14 @@
 		<T is={scene} />
 		<T.PointLight
 			color={GLOW_COLOR}
-			intensity={16}
-			distance={3}
+			intensity={18}
+			distance={6}
 			position={bladePosition.toArray()}
 		/>
 		<T.PointLight
 			color={GLOW_COLOR}
-			intensity={6}
-			distance={6}
+			intensity={7}
+			distance={10}
 			position={bladePosition.toArray()}
 		/>
 	</T.Group>
