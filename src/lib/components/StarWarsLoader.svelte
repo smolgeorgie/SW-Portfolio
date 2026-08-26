@@ -1,5 +1,14 @@
-<section class="crawl" aria-hidden="true">
-	<div class="crawl__viewport">
+	<script>
+		/** @type {HTMLElement | null} */
+		let crawlEl;
+	
+		function skip() {
+			crawlEl?.classList.add('crawl--skip');
+		}
+	</script>
+	
+<section class="crawl" aria-label="Intro animation" bind:this={crawlEl}>
+	<div class="crawl__viewport" aria-hidden="true">
 		<div class="crawl__text">
 			<header class="crawl__title">
 				<p>Episode I</p>
@@ -19,7 +28,12 @@
 			<p>The divs remain. But in style. So does she.</p>
 		</div>
 	</div>
+
+	<button class="crawl__skip" type="button" onclick={skip}>
+		Skip intro
+	</button>
 </section>
+
 
 <style>
 	.crawl {
@@ -29,8 +43,19 @@
 		overflow: hidden;
 		background: var(--color-bg);
 		animation:
-			crawl-fade-out 1s ease-out 15s forwards,
-			crawl-disable 1ms linear 16s forwards;
+			crawl-fade-out 1s ease-out 9s forwards,
+			crawl-disable 1ms linear 10s forwards;
+	}
+
+	/* Skip button fades to the same end-state as the automatic timeout */
+	.crawl:global(.crawl--skip) {
+		animation: none;
+		opacity: 0;
+		visibility: hidden;
+		pointer-events: none;
+		transition:
+			opacity 0.3s ease-out,
+			visibility 0s linear 0.3s;
 	}
 
 	.crawl__viewport {
@@ -38,23 +63,27 @@
 		width: 100%;
 		height: 100%;
 		overflow: hidden;
-		perspective: 350px;
+		perspective: 900px;
 	}
 
 	.crawl__text {
 		position: absolute;
 		top: 100%;
 		left: 50%;
-		width: min(92vw, 60rem);
+		width: 98vw;
 		transform-origin: 50% 100%;
 		transform: translateX(-50%) rotateX(25deg) translateY(0);
-		animation: crawl 16s linear forwards;
+		animation: crawl 10s linear forwards;
 		color: var(--color-star-wars-yellow);
 		font-family: var(--font-crawl);
 		font-weight: 700;
-		font-size: clamp(1.25rem, 4vw, 2rem);
+		font-size: clamp(3rem, 12vw, 8rem);
 		line-height: 1.5;
 		text-align: justify;
+	}
+
+	:global(.crawl--skip) .crawl__text {
+		animation-play-state: paused;
 	}
 
 	.crawl__title {
@@ -75,9 +104,27 @@
 		margin: 0 0 var(--space-lg);
 	}
 
-	@media (prefers-reduced-motion: reduce) {
+	.crawl__skip {
+		position: absolute;
+		bottom: var(--space-lg);
+		right: var(--space-lg);
+		z-index: 1000;
+		background: transparent;
+		border: 1px solid var(--color-star-wars-yellow);
+		color: var(--color-star-wars-yellow);
+		font-family: inherit;
+		font-size: 0.85rem;
+		padding: 0.5rem 1rem;
+		cursor: pointer;
+	}
+
+	/* @media (prefers-reduced-motion: reduce) {
 		.crawl {
 			animation: crawl-disable 1ms linear 4s forwards;
+		}
+
+		.crawl:global(.crawl--skip) {
+			transition: none;
 		}
 
 		.crawl__text {
@@ -87,7 +134,7 @@
 			width: min(90vw, 40rem);
 			margin-inline: auto;
 		}
-	}
+	} */
 
 	@keyframes crawl {
 		0% {
