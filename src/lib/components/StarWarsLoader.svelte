@@ -140,7 +140,7 @@
 			transform: translateX(-50%) rotateX(25deg) translateY(0);
 		}
 		100% {
-			transform: translateX(-50%) rotateX(25deg) translateY(-320vh);
+			transform: translateX(-50%) rotateX(25deg) translateY(-320svh);
 		}
 	}
 

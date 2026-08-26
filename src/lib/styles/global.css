@@ -1,3 +1,19 @@
+@font-face {
+	font-family: 'Atures';
+	src: url('/fonts/Atures-900_PERSONAL_USE.ttf') format('truetype');
+	font-weight: 900;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Starjhol';
+	src: url('/fonts/Starjhol.ttf') format('truetype');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
 :root {
 	--color-bg: #000;
 	--color-star-wars-yellow: #ffe81f;
@@ -9,6 +25,8 @@
 	--space-lg: 3rem;
 
 	--font-crawl: 'Arial Narrow', Arial, sans-serif;
+	--font-atures: 'Atures', Arial, sans-serif;
+	--font-starjhol: 'Starjhol', Arial, sans-serif;
 }
 
 *,
