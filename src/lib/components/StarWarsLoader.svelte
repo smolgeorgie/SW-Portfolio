@@ -1,13 +1,12 @@
 	<script>
-		/** @type {HTMLElement | null} */
-		let crawlEl;
-	
+		let skipped = $state(false);
+
 		function skip() {
-			crawlEl?.classList.add('crawl--skip');
+			skipped = true;
 		}
 	</script>
-	
-<section class="crawl" aria-label="Intro animation" bind:this={crawlEl}>
+
+<section class="crawl" class:crawl--skip={skipped} aria-label="Intro animation">
 	<div class="crawl__viewport" aria-hidden="true">
 		<div class="crawl__text">
 			<header class="crawl__title">
@@ -48,7 +47,7 @@
 	}
 
 	/* Skip button fades to the same end-state as the automatic timeout */
-	.crawl:global(.crawl--skip) {
+	.crawl.crawl--skip {
 		animation: none;
 		opacity: 0;
 		visibility: hidden;
@@ -82,7 +81,7 @@
 		text-align: justify;
 	}
 
-	:global(.crawl--skip) .crawl__text {
+	.crawl--skip .crawl__text {
 		animation-play-state: paused;
 	}
 
@@ -123,7 +122,7 @@
 			animation: crawl-disable 1ms linear 4s forwards;
 		}
 
-		.crawl:global(.crawl--skip) {
+		.crawl.crawl--skip {
 			transition: none;
 		}
 
