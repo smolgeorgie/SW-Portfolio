@@ -5,19 +5,19 @@
 
 	const factions = [
 		{
-			name: 'Sith',
-			description: 'Guardians of peace and security in the galaxy',
-			modifier: 'sith'
+			name: 'Designer',
+			description: 'Of Social Media posts, In-Game posters and Websites',
+			modifier: 'designer'
 		},
 		{
-			name: 'Republic',
-			description: 'Guardians of peace and security in the galaxy',
-			modifier: 'republic'
+			name: 'Photographer',
+			description: 'Hobby-ist and Semi-Professional of Businesses and Portraits',
+			modifier: 'photographer'
 		},
 		{
-			name: 'Separatists',
-			description: 'Guardians of peace and security in the galaxy',
-			modifier: 'separatists'
+			name: 'Developer',
+			description: 'Websites focused on Accessibility, Performance and Readability',
+			modifier: 'developer'
 		}
 	];
 </script>
@@ -45,9 +45,18 @@
 					class="faction-card faction-card--{faction.modifier}"
 					style:animation-delay="{index * 0.35}s"
 				>
-					<svg class="faction-card__icon" viewBox="0 0 40 40" aria-hidden="true">
-						<circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="1.5" />
-						<circle cx="20" cy="20" r="6" fill="currentColor" />
+					<svg
+						class="faction-card__symbol"
+						viewBox="0 0 38 38"
+						aria-hidden="true"
+						focusable="false"
+					>
+						<polygon
+							class="faction-card__burst"
+							points="19,0 23.18,10.64 31.16,3.04 28.12,12.92 38,12.16 28.88,19 38,25.84 28.12,25.08 31.16,34.96 23.18,27.36 19,38 14.82,27.36 6.84,34.96 9.88,25.08 0,25.84 9.12,19 0,12.16 9.88,12.92 6.84,3.04 14.82,10.64"
+						/>
+						<circle class="faction-card__core" cx="19" cy="19" r="10" />
+						<circle class="faction-card__cut" cx="19" cy="19" r="9" />
 					</svg>
 					<h2 class="faction-card__name">{faction.name}</h2>
 					<p class="faction-card__description">{faction.description}</p>
@@ -108,7 +117,6 @@
 	.hero__byline {
 		margin: var(--space-sm) 0 0;
 		font-family: var(--font-starjhol);
-		text-transform: uppercase;
 		color: transparent;
 		-webkit-text-stroke: 1px var(--color-star-wars-yellow);
 		font-size: clamp(1.1rem, 2.5vw, 2rem);
@@ -136,58 +144,102 @@
 	.faction-card {
 		--stagger: 0px;
 
+		position: relative;
 		display: flex;
 		flex-direction: column;
+		align-items: center;
 		justify-content: center;
-		flex: 1 1 13rem;
-		max-width: 16rem;
-		min-height: 14rem;
-		padding: var(--space-md);
+		flex: 0 0 auto;
+		width: 10rem;
+		min-height: 9.75rem;
+		padding: var(--space-xs);
 		text-align: center;
 		color: #fff;
-		background: rgb(var(--faction-rgb) / 30%);
-		border-radius: 16px;
-		box-shadow: 0 4px 30px rgb(0 0 0 / 10%);
-		backdrop-filter: blur(3.7px);
-		border: 1px solid rgb(var(--faction-rgb) / 40%);
+		background: linear-gradient(145deg, var(--faction-grad-from), var(--faction-grad-to));
+		border: 1px solid var(--faction-edge);
+		box-shadow:
+			0 0 30px var(--faction-glow),
+			inset 0 0 30px rgb(0 0 0 / 25%);
 		transform: translateY(var(--stagger));
 		animation: float 5s ease-in-out infinite;
 	}
 
-	.faction-card--sith {
-		--faction-color: #d9425a;
-		--faction-rgb: 111 24 26;
+	/* Little tab clipped to the top-left of the card. */
+	.faction-card::before {
+		content: '';
+		position: absolute;
+		top: -6px;
+		left: 2rem;
+		width: 5rem;
+		height: 6px;
+		background: var(--faction-tab);
+		border: 1px solid var(--faction-tab-edge);
+		border-bottom: none;
 	}
 
-	.faction-card--republic {
-		--faction-color: #3ecf8e;
-		--faction-rgb: 24 111 60;
+	.faction-card--designer {
+		--faction-grad-from: rgb(90 10 35 / 75%);
+		--faction-grad-to: rgb(35 8 17 / 85%);
+		--faction-edge: rgb(180 120 140 / 25%);
+		--faction-glow: rgb(100 0 35 / 15%);
+		--faction-tab: #4c1028;
+		--faction-tab-edge: rgb(180 120 140 / 20%);
+		--faction-symbol-cut: #5a102d;
+	}
+
+	.faction-card--photographer {
 		--stagger: 0.75rem;
+		--faction-grad-from: rgb(12 70 42 / 75%);
+		--faction-grad-to: rgb(8 30 20 / 85%);
+		--faction-edge: rgb(120 180 150 / 25%);
+		--faction-glow: rgb(0 100 55 / 15%);
+		--faction-tab: #103a28;
+		--faction-tab-edge: rgb(120 180 150 / 20%);
+		--faction-symbol-cut: #0d3a24;
 	}
 
-	.faction-card--separatists {
-		--faction-color: #3a8bc2;
-		--faction-rgb: 24 63 111;
+	.faction-card--developer {
+		--faction-grad-from: rgb(20 45 90 / 75%);
+		--faction-grad-to: rgb(8 18 35 / 85%);
+		--faction-edge: rgb(120 145 190 / 25%);
+		--faction-glow: rgb(0 45 110 / 15%);
+		--faction-tab: #10284c;
+		--faction-tab-edge: rgb(120 145 190 / 20%);
+		--faction-symbol-cut: #102d5a;
 	}
 
-	.faction-card__icon {
-		width: 2rem;
-		height: 2rem;
-		color: var(--faction-color);
+	.faction-card__symbol {
+		width: 2.6rem;
+		height: 2.6rem;
+		margin-bottom: var(--space-2xs);
+		filter: drop-shadow(0 0 6px rgb(255 255 255 / 45%));
+	}
+
+	.faction-card__burst,
+	.faction-card__core {
+		fill: #fff;
+	}
+
+	.faction-card__cut {
+		fill: var(--faction-symbol-cut);
 	}
 
 	.faction-card__name {
-		margin: var(--space-2xs) 0 0;
-		font-family: var(--font-atures);
-		font-weight: 900;
-		text-transform: uppercase;
-		font-size: 1.1rem;
+		margin: 0;
+		font-family: var(--font-crawl);
+		font-weight: 500;
+		font-size: 1.25rem;
+		letter-spacing: -0.02em;
 	}
 
 	.faction-card__description {
-		margin: var(--space-2xs) 0 0;
-		color: rgb(255 255 255 / 70%);
-		font-size: 0.85rem;
+		max-width: 8rem;
+		margin: 0.7rem 0 0;
+		color: rgb(255 255 255 / 85%);
+		font-family: var(--font-crawl);
+		font-size: 0.5625rem;
+		line-height: 1.45;
+		text-wrap: balance;
 	}
 
 	@keyframes float {

@@ -13,9 +13,10 @@
 	const POINTER_EASE = 0.08;
 	const GLOW_COLOR = new Color('#ff2a2a');
 
-	const BLOOM_LUMINANCE_THRESHOLD = 0.65;
-	const BLOOM_LUMINANCE_SMOOTHING = 0.2;
-	const BLOOM_INTENSITY = 3;
+	const BLOOM_LUMINANCE_THRESHOLD = 0.15;
+	const BLOOM_LUMINANCE_SMOOTHING = 0.4;
+	const BLOOM_INTENSITY = 9;
+	const BLOOM_RADIUS = 0.95;
 	const BLOOM_MULTISAMPLING = 4;
 
 	const composer = new EffectComposer(renderer, {
@@ -27,7 +28,8 @@
 		luminanceThreshold: BLOOM_LUMINANCE_THRESHOLD,
 		luminanceSmoothing: BLOOM_LUMINANCE_SMOOTHING,
 		intensity: BLOOM_INTENSITY,
-		mipmapBlur: false,
+		radius: BLOOM_RADIUS,
+		mipmapBlur: true,
 		kernelSize: KernelSize.HUGE
 	});
 	const bloomPass = new EffectPass(camera.current, bloomEffect);
@@ -115,7 +117,6 @@
 		return found ? box.getCenter(new Vector3()) : null;
 	}
 
-	/** Rotates the model so it stands upright with the blade pointing up. */
 	/** @param {import('three').Object3D} object */
 	function orientUpright(object) {
 		if (object.userData.oriented) return;
@@ -180,14 +181,14 @@
 		<T is={scene} />
 		<T.PointLight
 			color={GLOW_COLOR}
-			intensity={18}
-			distance={6}
+			intensity={30}
+			distance={12}
 			position={bladePosition.toArray()}
 		/>
 		<T.PointLight
 			color={GLOW_COLOR}
-			intensity={7}
-			distance={10}
+			intensity={14}
+			distance={24}
 			position={bladePosition.toArray()}
 		/>
 	</T.Group>
