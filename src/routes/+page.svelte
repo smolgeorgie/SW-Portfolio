@@ -132,9 +132,9 @@
 
 	.faction-row {
 		display: flex;
-		flex-wrap: wrap;
 		justify-content: center;
-		gap: var(--space-md);
+		align-items: flex-end;
+		gap: 10%;
 		max-width: 55rem;
 		margin-inline: auto;
 		padding: 0;
@@ -150,8 +150,8 @@
 		align-items: center;
 		justify-content: center;
 		flex: 0 0 auto;
-		width: 10rem;
-		min-height: 9.75rem;
+		width: 13rem;
+		/* min-height: 14rem; */
 		padding: var(--space-xs);
 		text-align: center;
 		color: #fff;
@@ -164,12 +164,11 @@
 		animation: float 5s ease-in-out infinite;
 	}
 
-	/* Little tab clipped to the top-left of the card. */
 	.faction-card::before {
 		content: '';
 		position: absolute;
 		top: -6px;
-		left: 2rem;
+		left: 30%;
 		width: 5rem;
 		height: 6px;
 		background: var(--faction-tab);
@@ -185,6 +184,7 @@
 		--faction-tab: #4c1028;
 		--faction-tab-edge: rgb(180 120 140 / 20%);
 		--faction-symbol-cut: #5a102d;
+		height: 16rem;
 	}
 
 	.faction-card--photographer {
@@ -196,6 +196,8 @@
 		--faction-tab: #103a28;
 		--faction-tab-edge: rgb(120 180 150 / 20%);
 		--faction-symbol-cut: #0d3a24;
+		height: 14rem;
+		margin-bottom: 1rem;
 	}
 
 	.faction-card--developer {
@@ -206,6 +208,7 @@
 		--faction-tab: #10284c;
 		--faction-tab-edge: rgb(120 145 190 / 20%);
 		--faction-symbol-cut: #102d5a;
+		height: 16rem;
 	}
 
 	.faction-card__symbol {
