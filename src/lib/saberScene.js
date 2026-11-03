@@ -1,7 +1,9 @@
 // @ts-nocheck
 import * as THREE from 'three';
+import { BloomEffect, EffectComposer, EffectPass, RenderPass } from 'postprocessing';
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
 const damp = (current, target, lambda, dt) =>
 	current + (target - current) * (1 - Math.exp(-lambda * dt));
 const smooth = (x) => x * x * (3 - 2 * x);
@@ -23,7 +25,17 @@ const NAME_COLOUR = 0xffe81f;
 
 const LEGACY = Math.PI;
 
-export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, scrollHint, workSection, onIgnited }) {
+export function createSaberScene({
+	canvas,
+	intro,
+	nameSlot,
+	role,
+	skillsList,
+	skillSections,
+	scrollHint,
+	workSection,
+	onIgnited
+}) {
 	const root = document.documentElement;
 	const cardItems = Array.from(skillsList.children);
 	const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -55,6 +67,20 @@ export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, sc
 	const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
 	camera.position.set(0, 0, CAM_Z);
 
+	const composer = new EffectComposer(renderer, {
+		frameBufferType: THREE.HalfFloatType,
+		multisampling: window.devicePixelRatio > 1.5 ? 0 : 4
+	});
+	composer.addPass(new RenderPass(scene, camera));
+	const bloom = new BloomEffect({
+		mipmapBlur: true,
+		intensity: 1.1,
+		luminanceThreshold: 0.4,
+		luminanceSmoothing: 0.25,
+		radius: 0.7
+	});
+	composer.addPass(new EffectPass(camera, bloom));
+
 	const view = { w: 1, h: 1, visW: 1, visH: 1, narrow: false };
 	function measureView() {
 		view.w = root.clientWidth || window.innerWidth;
@@ -64,7 +90,7 @@ export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, sc
 		view.visH = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * CAM_Z;
 		view.visW = view.visH * camera.aspect;
 		view.narrow = camera.aspect < 1.05;
-		renderer.setSize(view.w, view.h, false);
+		composer.setSize(view.w, view.h, false);
 	}
 
 	/* ---------- the wall ---------- */
@@ -461,6 +487,288 @@ export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, sc
 	dust.frustumCulled = false;
 	scene.add(dust);
 
+	/* ---------- the slash, the glass shards and the dust ---------- */
+	const toWorldX = (px) => (px / view.w - 0.5) * view.visW;
+	const toWorldY = (py) => (0.5 - py / view.h) * view.visH;
+	const SLASH_ANGLE = 1.45;
+
+	const SHARD_TINTS = [
+		[0.22, 0.55, 1.0],
+		[0.18, 0.84, 0.43],
+		[1.0, 0.19, 0.16]
+	];
+	const SHARD_LIFE = 0.45;
+	const DUST_PER_CARD = 400;
+	const DUST_KEPT = 60;
+	const DUST_GLOW = 0.3;
+	const DUST_BLUR = 0.4;
+	const SHARD_DEPTH = 0.035;
+
+	function unitShards(cols, rows, rand) {
+		const pts = [];
+		for (let j = 0; j <= rows; j++) {
+			for (let i = 0; i <= cols; i++) {
+				const jx = i === 0 || i === cols ? 0 : (rand() - 0.5) * 0.7;
+				const jy = j === 0 || j === rows ? 0 : (rand() - 0.5) * 0.7;
+				pts.push([(i + jx) / cols, (j + jy) / rows]);
+			}
+		}
+		const at = (i, j) => pts[j * (cols + 1) + i];
+		const tris = [];
+		for (let j = 0; j < rows; j++) {
+			for (let i = 0; i < cols; i++) {
+				const a = at(i, j);
+				const b = at(i + 1, j);
+				const c = at(i + 1, j + 1);
+				const d = at(i, j + 1);
+				if (rand() < 0.5) tris.push([a, b, c], [a, c, d]);
+				else tris.push([a, b, d], [b, c, d]);
+			}
+		}
+		return tris;
+	}
+
+	const shardRand = seeded(21);
+	const white = new THREE.Color(1, 1, 1);
+	const shatterCards = cardItems.map(function (li, i) {
+		const tint = new THREE.Color().fromArray(SHARD_TINTS[i]);
+		const glass = new THREE.MeshPhysicalMaterial({
+			color: tint.clone().lerp(white, 0.55),
+			emissive: tint,
+			emissiveIntensity: 0.18,
+			metalness: 0,
+			roughness: 0.32,
+			transmission: 1,
+			thickness: 0.12,
+			ior: 1.45,
+			attenuationColor: tint,
+			attenuationDistance: 0.6,
+			clearcoat: 1,
+			clearcoatRoughness: 0.08
+		});
+		const group = new THREE.Group();
+		group.visible = false;
+		scene.add(group);
+
+		const pieces = unitShards(3, 4, shardRand)
+			.map((tri) => ({ part: 'panel', tri }))
+			.concat(unitShards(2, 1, shardRand).map((tri) => ({ part: 'tab', tri })));
+		const shards = pieces.map(function ({ part, tri }) {
+			const mesh = new THREE.Mesh(new THREE.BufferGeometry(), glass);
+			group.add(mesh);
+			return {
+				part,
+				tri,
+				mesh,
+				origin: new THREE.Vector3(),
+				local: [new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2()],
+				dir: new THREE.Vector3(),
+				axis: new THREE.Vector3(shardRand() - 0.5, shardRand() - 0.5, shardRand() - 0.5).normalize(),
+				spin: (shardRand() - 0.5) * 7
+			};
+		});
+
+		const dust = Array.from({ length: DUST_PER_CARD }, function (_, n) {
+			let u = shardRand();
+			let v = shardRand();
+			if (u + v > 1) {
+				u = 1 - u;
+				v = 1 - v;
+			}
+			return {
+				keep: n < DUST_KEPT,
+				shard: Math.floor(shardRand() * shards.length),
+				u,
+				v,
+				release: 0.25 + shardRand() * 0.65,
+				rest: new THREE.Vector3((shardRand() - 0.5) * 1.9, 0.04 + shardRand() * 0.9, -2.2 + shardRand() * 2.4),
+				phase: shardRand() * Math.PI * 2,
+				size: 0.025 + Math.pow(shardRand(), 3) * 0.07
+			};
+		});
+
+		return {
+			li,
+			panel: li.querySelector('.glass-card__panel'),
+			tab: li.querySelector('.glass-card__tab'),
+			tint: SHARD_TINTS[i],
+			section: skillSections[i],
+			sectionTop: 1,
+			cutY: null,
+			armed: false,
+			centre: new THREE.Vector3(),
+			group,
+			shards,
+			dust
+		};
+	});
+
+	const sparkTotal = DUST_PER_CARD * shatterCards.length;
+	const sparkPos = new Float32Array(sparkTotal * 3);
+	const sparkCol = new Float32Array(sparkTotal * 3);
+	const sparkSize = new Float32Array(sparkTotal);
+	const sparkGeo = new THREE.BufferGeometry();
+	sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3));
+	sparkGeo.setAttribute('aColor', new THREE.BufferAttribute(sparkCol, 3));
+	sparkGeo.setAttribute('aSize', new THREE.BufferAttribute(sparkSize, 1));
+	const sparkUniforms = { uScale: { value: 1 } };
+	const sparks = new THREE.Points(
+		sparkGeo,
+		new THREE.ShaderMaterial({
+			uniforms: sparkUniforms,
+			vertexShader: `
+				attribute vec3 aColor;
+				attribute float aSize;
+				uniform float uScale;
+				varying vec3 vColor;
+				void main() {
+					vColor = aColor;
+					vec4 mv = modelViewMatrix * vec4(position, 1.0);
+					gl_PointSize = aSize * uScale / -mv.z;
+					gl_Position = projectionMatrix * mv;
+				}`,
+			fragmentShader: `
+				varying vec3 vColor;
+				void main() {
+					float d = length(gl_PointCoord - 0.5) * 2.0;
+					float a = exp(-d * d * 5.0) * smoothstep(1.0, 0.6, d);
+					gl_FragColor = vec4(vColor * a, 1.0);
+				}`,
+			transparent: true,
+			depthWrite: false,
+			blending: THREE.AdditiveBlending
+		})
+	);
+	sparks.frustumCulled = false;
+	sparks.renderOrder = 4;
+
+	scene.add(sparks);
+
+	function shatter(card, y) {
+		card.cutY = y;
+		const p = card.panel.getBoundingClientRect();
+		const tb = card.tab.getBoundingClientRect();
+		const rects = {
+			panel: { l: p.left, t: p.top, w: p.width, h: p.height },
+			tab: { l: tb.left, t: tb.top, w: tb.width, h: Math.max(1, p.top - tb.top) }
+		};
+		card.centre.set(toWorldX(p.left + p.width / 2), toWorldY(p.top + p.height / 2), 0);
+		card.shards.forEach(function (s) {
+			const r = rects[s.part];
+			const pts = s.tri.map(([u, v]) => [toWorldX(r.l + u * r.w), toWorldY(r.t + v * r.h)]);
+			const cx = (pts[0][0] + pts[1][0] + pts[2][0]) / 3;
+			const cy = (pts[0][1] + pts[1][1] + pts[2][1]) / 3;
+			s.origin.set(cx, cy, 0);
+			pts.forEach((pt, k) => s.local[k].set(pt[0] - cx, pt[1] - cy));
+			s.dir.set(cx - card.centre.x, cy - card.centre.y, 0.5).normalize();
+			s.mesh.geometry.dispose();
+			s.mesh.geometry = new THREE.ExtrudeGeometry(new THREE.Shape(s.local), {
+				depth: SHARD_DEPTH,
+				bevelEnabled: true,
+				bevelThickness: SHARD_DEPTH * 0.4,
+				bevelSize: SHARD_DEPTH * 0.3,
+				bevelSegments: 2,
+				curveSegments: 1
+			});
+			s.mesh.geometry.translate(0, 0, -SHARD_DEPTH / 2);
+		});
+		card.li.style.visibility = 'hidden';
+	}
+
+	function mend(card) {
+		card.cutY = null;
+		card.li.style.visibility = '';
+	}
+
+	function shardCentre(s, k, out) {
+		out.copy(s.origin).addScaledVector(s.dir, (1 - Math.pow(1 - k, 3)) * 0.9);
+		out.y -= 1.6 * k * k;
+		return out;
+	}
+
+	const shardShrink = (k) => 1 - smoothstep(0.35, 1, k);
+	const releaseAt = new THREE.Vector3();
+
+	function updateShards(y, t, swing) {
+		const red = sabers[1].pose;
+		const pxToWorld = view.visH / view.h;
+		const shardSpan = view.h * SHARD_LIFE;
+		const still = reduceMotion ? 0 : 1;
+		sparkUniforms.uScale.value =
+			(renderer.getPixelRatio() * view.h) / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
+
+		shatterCards.forEach(function (card, ci) {
+			const box = card.li.getBoundingClientRect();
+			const cx = toWorldX(box.left + box.width / 2);
+			const cy = toWorldY(box.top + box.height / 2);
+			const ahead = Math.atan2(red.px - cx, cy - red.py) - red.rz;
+			if (swing < 0.2) {
+				if (card.cutY !== null) mend(card);
+				card.armed = false;
+			} else if (card.cutY === null) {
+				if (ahead > 0.05) card.armed = true;
+				else if ((card.armed && ahead <= 0) || swing >= 0.85) shatter(card, y);
+			} else if (swing < 0.85 && ahead > 0.03) {
+				mend(card);
+			}
+
+			const base = ci * DUST_PER_CARD;
+			if (card.cutY === null) {
+				card.group.visible = false;
+				sparkSize.fill(0, base, base + DUST_PER_CARD);
+				return;
+			}
+
+			const k = clamp((y - card.cutY) / shardSpan, 0, 1);
+			const lift = Math.max(0, y - card.sectionTop) * pxToWorld;
+			const shrink = shardShrink(k);
+			card.group.visible = shrink > 0.001;
+			card.shards.forEach(function (s) {
+				shardCentre(s, k, s.mesh.position);
+				s.mesh.quaternion.setFromAxisAngle(s.axis, s.spin * k);
+				s.mesh.scale.setScalar(Math.max(0.001, shrink));
+			});
+
+			card.dust.forEach(function (d, di) {
+				const j = base + di;
+				if (k < d.release) {
+					sparkSize[j] = 0;
+					return;
+				}
+				const s = card.shards[d.shard];
+				const l = s.local;
+				const at = shardShrink(d.release);
+				shardCentre(s, d.release, releaseAt);
+				releaseAt.x += (l[0].x + (l[1].x - l[0].x) * d.u + (l[2].x - l[0].x) * d.v) * at;
+				releaseAt.y += (l[0].y + (l[1].y - l[0].y) * d.u + (l[2].y - l[0].y) * d.v) * at;
+
+				const relY = card.cutY + d.release * shardSpan;
+				const travel = clamp((y - relY) / Math.max(1, card.sectionTop - relY), 0, 1);
+				const q = smooth(travel);
+				const px = lerp(releaseAt.x, (d.rest.x * view.visW) / 2, q) + Math.sin(t * 0.3 + d.phase) * 0.15 * still * q;
+				const py =
+					lerp(releaseAt.y, -view.visH / 2 + d.rest.y * view.visH, q) +
+					lift +
+					Math.sin(t * 0.23 + d.phase * 1.3) * 0.12 * still * q;
+				sparkPos[j * 3] = px;
+				sparkPos[j * 3 + 1] = py;
+				sparkPos[j * 3 + 2] = lerp(releaseAt.z, d.rest.z, q);
+
+				const fresh = 1 - smoothstep(0, 0.06, travel);
+				const fade = d.keep ? 1 : 1 - smoothstep(0.05, 0.5, travel);
+				const glow = fade * DUST_GLOW * (1 + 0.3 * Math.sin(t * 0.8 + d.phase) * still + 1.5 * fresh);
+				sparkCol[j * 3] = card.tint[0] * glow;
+				sparkCol[j * 3 + 1] = card.tint[1] * glow;
+				sparkCol[j * 3 + 2] = card.tint[2] * glow;
+				sparkSize[j] = fade > 0 ? d.size * DUST_BLUR * (1 + 0.5 * fresh) : 0;
+			});
+		});
+
+		sparkGeo.attributes.position.needsUpdate = true;
+		sparkGeo.attributes.aColor.needsUpdate = true;
+		sparkGeo.attributes.aSize.needsUpdate = true;
+	}
+
 	/* ---------- where the sabers are ---------- */
 	const pointer = { x: 0, y: 0, sx: 0, sy: 0 };
 	const X = { angle: 0.8, sc: 1.6, s0: 1.8, cy: 0 };
@@ -485,9 +793,10 @@ export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, sc
 		introEnd = Math.max(1, docTop(intro) + intro.offsetHeight - view.h);
 		workTop = Math.max(introEnd + 1, docTop(workSection));
 		maxScroll = Math.max(workTop + 1, root.scrollHeight - view.h);
+		shatterCards.forEach((card) => (card.sectionTop = docTop(card.section)));
 	}
 
-	function saberGoal(sb, pIntro, lenEnd) {
+	function saberGoal(sb, pIntro, lenEnd, swing) {
 		const a = X.angle;
 		const dx = -sb.spec.side * Math.sin(a);
 		const dy = Math.cos(a);
@@ -503,6 +812,25 @@ export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, sc
 		g.rz = sb.spec.side * a;
 		g.len = lenEnd;
 		g.sc = X.sc;
+		if (sb.spec.side === -1 && swing > 0) {
+			const gone = smoothstep(0.1, 0.3, swing);
+			g.len *= 1 - gone;
+			g.py -= gone * 3;
+		}
+		if (sb.spec.side === 1 && swing > 0) {
+			const sit = smooth(clamp(swing / 0.2, 0, 1));
+			const windUp = smooth(clamp((swing - 0.2) / 0.1, 0, 1));
+			const sweep = smooth(clamp((swing - 0.3) / 0.55, 0, 1));
+			const sink = smooth(clamp((swing - 0.85) / 0.15, 0, 1));
+			const sitY = -view.visH / 2 + view.visH * 0.22 - SABER.blade * X.sc;
+			const slashY = -view.visH / 2 + 0.5;
+			g.px = lerp(g.px, 0, sit);
+			g.py = lerp(g.py, lerp(sitY, slashY, windUp), sit) - sink * 4;
+			g.s = lerp(g.s, 0, sit);
+			g.rz = lerp(g.rz, lerp(-SLASH_ANGLE * windUp, SLASH_ANGLE, sweep), sit);
+			g.len *= 1 - sink;
+		}
+		if (sb.spec.side === 1) sb.group.visible = swing < 1;
 	}
 
 	const axisTmp = new THREE.Vector3();
@@ -628,7 +956,8 @@ export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, sc
 		pointer.sy = damp(pointer.sy, pointer.y, 5, dt);
 
 		const y = window.scrollY;
-		const pIntro = clamp(y / introEnd, 0, 1);
+		const pIntro = clamp(y / (introEnd / 2), 0, 1);
+		const swing = clamp((y - introEnd / 2) / (introEnd / 2), 0, 1);
 		const lenEnd = 1 - smoothstep(workTop + (maxScroll - workTop) * 0.4, maxScroll, y);
 
 		if (!inCorner && pIntro >= 0.75) {
@@ -639,7 +968,7 @@ export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, sc
 		}
 
 		sabers.forEach(function (sb) {
-			saberGoal(sb, pIntro, lenEnd);
+			saberGoal(sb, pIntro, lenEnd, swing);
 			for (const key in sb.goal) {
 				if (!Number.isFinite(sb.goal[key])) continue;
 				sb.pose[key] = Number.isFinite(sb.pose[key])
@@ -661,13 +990,14 @@ export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, sc
 		updateReveal(pIntro);
 		updateHint(pIntro, dt);
 		updateDust(glowBlue, glowRed, dt);
+		updateShards(y, t, swing);
 
 		if (!reduceMotion) {
 			camera.position.x = pointer.sx * 0.25;
 			camera.position.y = pointer.sy * 0.15;
 		}
 		camera.lookAt(0, 0, 0);
-		renderer.render(scene, camera);
+		composer.render(dt);
 		raf = requestAnimationFrame(frame);
 	}
 
@@ -706,9 +1036,9 @@ export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, sc
 
 	/* ---------- start ---------- */
 	if (relayout()) {
-		const pIntro = clamp(window.scrollY / introEnd, 0, 1);
+		const pIntro = clamp(window.scrollY / (introEnd / 2), 0, 1);
 		sabers.forEach(function (sb) {
-			saberGoal(sb, pIntro, 1);
+			saberGoal(sb, pIntro, 1, 0);
 			Object.assign(sb.pose, sb.goal);
 		});
 	}
@@ -741,6 +1071,7 @@ export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, sc
 		timers.forEach(clearTimeout);
 		listeners.abort();
 		resizeObserver.disconnect();
+		composer.dispose();
 		renderer.dispose();
 		renderer.forceContextLoss();
 	};

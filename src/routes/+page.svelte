@@ -26,6 +26,7 @@
 				en: 'Content that knows who it’s for and why they’d care.',
 				nl: 'Content die weet voor wie het is en waarom het hen iets kan schelen.'
 			},
+			more: { en: '[A few lines about your marketing work]', nl: '[Een paar regels over je marketingwerk]' },
 			icon: [
 				'M6 19v10h7l15 9V10l-15 9Z',
 				'M13 29l3 11h5l-2.5-10',
@@ -41,6 +42,7 @@
 				en: 'Designs that make sense for the people using them.',
 				nl: 'Ontwerpen die logisch zijn voor de mensen die ze gebruiken.'
 			},
+			more: { en: '[A few lines about your design work]', nl: '[Een paar regels over je ontwerpwerk]' },
 			icon: [
 				'M24 5 36 21l-5.5 17h-13L12 21Z',
 				'M24 5v15.5',
@@ -55,6 +57,10 @@
 			text: {
 				en: 'Fast and accessible websites that work for everyone.',
 				nl: 'Snelle, toegankelijke websites die voor iedereen werken.'
+			},
+			more: {
+				en: '[A few lines about your development work]',
+				nl: '[Een paar regels over je development-werk]'
 			},
 			icon: ['M16 14 6 24l10 10', 'M32 14l10 10-10 10', 'M27.5 9 20.5 39']
 		}
@@ -74,6 +80,8 @@
 	let scrollHint;
 	/** @type {HTMLElement} */
 	let workSection;
+	/** @type {HTMLElement[]} */
+	const skillSections = [];
 
 	const LANG_KEY = 'language';
 	/** @type {'en' | 'nl'} */
@@ -116,6 +124,7 @@
 			nameSlot,
 			role,
 			skillsList,
+			skillSections,
 			scrollHint,
 			workSection,
 			onIgnited
@@ -155,6 +164,7 @@
 
 <main class="page">
 	<div class="intro" bind:this={intro}>
+		<div class="intro__snap intro__snap--revealed" aria-hidden="true"></div>
 		<div class="intro__snap" aria-hidden="true"></div>
 		<div class="intro__stage">
 			<section class="hero" aria-labelledby="hero-name">
@@ -200,6 +210,18 @@
 			</div>
 		</div>
 	</div>
+
+	{#each skills as skill, i (skill.id)}
+		<section
+			class="section skill-section"
+			id={skill.id}
+			aria-labelledby="{skill.id}-title"
+			bind:this={skillSections[i]}
+		>
+			<h2 class="section__title" id="{skill.id}-title">{skill.title[lang]}</h2>
+			<p class="section__text">{skill.more[lang]}</p>
+		</section>
+	{/each}
 
 	<section class="section work" id="work" aria-labelledby="work-title" bind:this={workSection}>
 		<h2 class="section__title" id="work-title">{copy[lang].work}</h2>
@@ -295,7 +317,7 @@
 	.intro {
 		--u: clamp(0.875rem, min(0.375rem + 1vw, 2.7svh), 2.1rem);
 		position: relative;
-		height: 200svh;
+		height: 300svh;
 		scroll-snap-align: start;
 	}
 
@@ -306,6 +328,12 @@
 		width: 1px;
 		height: 1px;
 		scroll-snap-align: end;
+	}
+
+	.intro__snap--revealed {
+		top: 100svh;
+		bottom: auto;
+		scroll-snap-align: start;
 	}
 
 	.intro__stage {
@@ -566,7 +594,8 @@
 		text-wrap: balance;
 	}
 
-	.work {
+	.work,
+	.skill-section {
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
