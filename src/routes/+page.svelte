@@ -1,262 +1,531 @@
 <script>
-	import { Canvas } from '@threlte/core';
-	import LightsaberScene from '$lib/components/LightsaberScene.svelte';
-	import Starfield from '$lib/components/Starfield.svelte';
+	import { onMount } from 'svelte';
+	import { createSaberScene } from '$lib/saberScene.js';
 
-	const factions = [
+	const skills = [
 		{
-			name: 'Designer',
-			description: 'Of Social Media posts, In-Game posters and Websites',
-			modifier: 'designer'
+			id: 'marketing',
+			tint: 'blue',
+			title: 'Marketing',
+			text: 'Content that knows who it’s for and why they’d care.',
+			icon: [
+				'M6 19v10h7l15 9V10l-15 9Z',
+				'M13 29l3 11h5l-2.5-10',
+				'M35 18.5c1.8 1.6 2.8 3.5 2.8 5.5s-1 3.9-2.8 5.5',
+				'M39.5 13c3.2 2.9 4.8 6.6 4.8 11s-1.6 8.1-4.8 11'
+			]
 		},
 		{
-			name: 'Photographer',
-			description: 'Hobby-ist and Semi-Professional of Businesses and Portraits',
-			modifier: 'photographer'
+			id: 'design',
+			tint: 'green',
+			title: 'Design',
+			text: 'Designs that make sense for the people using them.',
+			icon: [
+				'M24 5 36 21l-5.5 17h-13L12 21Z',
+				'M24 5v15.5',
+				'M20.5 24a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0-7 0',
+				'M17 44h14'
+			]
 		},
 		{
-			name: 'Developer',
-			description: 'Websites focused on Accessibility, Performance and Readability',
-			modifier: 'developer'
+			id: 'development',
+			tint: 'red',
+			title: 'Development',
+			text: 'Fast and accessible websites that work for everyone.',
+			icon: ['M16 14 6 24l10 10', 'M32 14l10 10-10 10', 'M27.5 9 20.5 39']
 		}
 	];
+
+	/** @type {HTMLCanvasElement} */
+	let canvas;
+	/** @type {HTMLElement} */
+	let intro;
+	/** @type {HTMLElement} */
+	let nameSlot;
+	/** @type {HTMLElement} */
+	let role;
+	/** @type {HTMLElement} */
+	let skillsList;
+	/** @type {HTMLElement} */
+	let scrollHint;
+	/** @type {HTMLElement} */
+	let workSection;
+
+	onMount(() => {
+		// On phones, start the swipeable row on the middle (green) card.
+		if (skillsList.scrollWidth > skillsList.clientWidth + 2) {
+			const middle = /** @type {HTMLElement} */ (skillsList.children[1]);
+			skillsList.scrollLeft = middle.offsetLeft - (skillsList.clientWidth - middle.offsetWidth) / 2;
+		}
+		return createSaberScene({ canvas, intro, nameSlot, role, skillsList, scrollHint, workSection });
+	});
 </script>
 
+<svelte:head>
+	<title>Ilona van Oosbree – Frontend Developer and Marketer</title>
+	<meta name="description" content="Portfolio of Ilona van Oosbree, frontend developer and marketer." />
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+	<link
+		rel="stylesheet"
+		href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap"
+	/>
+</svelte:head>
+
+<canvas class="scene" aria-hidden="true" bind:this={canvas}></canvas>
+
 <main class="page">
-	<Starfield />
+	<div class="intro" bind:this={intro}>
+		<div class="intro__stage">
+			<section class="hero" aria-labelledby="hero-name">
+				<h1 class="visually-hidden" id="hero-name">Ilona van Oosbree</h1>
+				<div class="hero__name-slot" aria-hidden="true" bind:this={nameSlot}></div>
+				<p class="hero__role" bind:this={role}>Frontend Developer and Marketer</p>
+			</section>
 
-	<div class="scene" aria-hidden="true">
-		<Canvas>
-			<LightsaberScene />
-		</Canvas>
+			<section class="skills" id="skills" aria-labelledby="skills-title">
+				<h2 class="visually-hidden" id="skills-title">What I do</h2>
+				<ul class="skills__list" bind:this={skillsList}>
+					{#each skills as skill (skill.id)}
+						<li class="skills__item skills__item--{skill.tint}">
+							<article class="glass-card" aria-labelledby="skill-{skill.id}">
+								<span class="glass-card__tab" aria-hidden="true"></span>
+								<div class="glass-card__panel">
+									<svg
+										class="glass-card__icon"
+										viewBox="0 0 48 48"
+										aria-hidden="true"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="3.6"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+									>
+										{#each skill.icon as d (d)}
+											<path {d} />
+										{/each}
+									</svg>
+									<h3 class="glass-card__title" id="skill-{skill.id}">{skill.title}</h3>
+									<p class="glass-card__text">{skill.text}</p>
+								</div>
+							</article>
+						</li>
+					{/each}
+				</ul>
+			</section>
+
+			<div class="scroll-hint" aria-hidden="true" bind:this={scrollHint}>
+				<span>Scroll</span>
+				<span class="scroll-hint__line"></span>
+			</div>
+		</div>
 	</div>
 
-	<div class="hero-stage">
-		<header class="hero">
-			<h1 class="hero__title">Front-End<br />Developer</h1>
-			<p class="hero__byline">iLoNA VAN ooSBREE</p>
-		</header>
-	</div>
-
-	<section class="factions" aria-label="Focus areas">
-		<ul class="faction-row">
-			{#each factions as faction, index}
-				<li
-					class="faction-card faction-card--{faction.modifier}"
-					style:animation-delay="{index * 0.35}s"
-				>
-					<svg
-						class="faction-card__symbol"
-						viewBox="0 0 38 38"
-						aria-hidden="true"
-						focusable="false"
-					>
-						<polygon
-							class="faction-card__burst"
-							points="19,0 23.18,10.64 31.16,3.04 28.12,12.92 38,12.16 28.88,19 38,25.84 28.12,25.08 31.16,34.96 23.18,27.36 19,38 14.82,27.36 6.84,34.96 9.88,25.08 0,25.84 9.12,19 0,12.16 9.88,12.92 6.84,3.04 14.82,10.64"
-						/>
-						<circle class="faction-card__core" cx="19" cy="19" r="10" />
-						<circle class="faction-card__cut" cx="19" cy="19" r="9" />
-					</svg>
-					<h2 class="faction-card__name">{faction.name}</h2>
-					<p class="faction-card__description">{faction.description}</p>
+	<section class="section work" id="work" aria-labelledby="work-title" bind:this={workSection}>
+		<h2 class="section__title" id="work-title">Work</h2>
+		<ul class="work-list">
+			{#each [1, 2, 3] as n (n)}
+				<li>
+					<h3 class="work-list__title">[Project name]</h3>
+					<p class="section__text">[One line about the project]</p>
 				</li>
 			{/each}
 		</ul>
 	</section>
+
+	<section class="section contact" id="contact" aria-labelledby="contact-title">
+		<h2 class="section__title" id="contact-title">Contact</h2>
+		<p class="section__text">[Your email or socials]</p>
+	</section>
 </main>
 
 <style>
+	:global(:root) {
+		color-scheme: dark;
+		--color-void: #060810;
+		--color-bone: #ece5d6;
+		--color-steel: #b3bbc5;
+		--color-focus: #8ab8ff;
+		--font-display: var(--font-starjhol);
+		--font-text: 'Rajdhani', 'Arial Narrow', Arial, sans-serif;
+		--grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+		padding-top: env(safe-area-inset-top, 0px);
+		padding-bottom: env(safe-area-inset-bottom, 0px);
+	}
+
+	:global(html) {
+		background: var(--color-void);
+		scroll-padding-top: env(safe-area-inset-top, 0px);
+	}
+
+	:global(body) {
+		background: var(--color-void);
+		color: var(--color-steel);
+		font-family: var(--font-text);
+		font-weight: 500;
+		-webkit-font-smoothing: antialiased;
+	}
+
+	:global(:focus-visible) {
+		outline: 2px solid var(--color-focus);
+		outline-offset: 2px;
+	}
+
+	.visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		padding: 0;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
+	/* Scene */
+	.scene {
+		position: fixed;
+		inset: 0;
+		z-index: 0;
+		display: block;
+		width: 100%;
+		height: 100%;
+		touch-action: pan-y;
+	}
+
 	.page {
 		position: relative;
+		z-index: 1;
+		pointer-events: none;
+	}
+
+	/* First screen. The track is two screens tall and the stage sticks while you scroll through it,
+	   so the sabers can move away and the name and cards can appear in place.
+	   --u is one fluid unit that grows with the screen width, capped by the height so everything
+	   always fits in one screen. Every size below is a multiple of it, so nothing jumps. */
+	.intro {
+		--u: clamp(0.875rem, min(0.375rem + 1vw, 2.7svh), 2.1rem);
+		position: relative;
+		height: 200svh;
+	}
+
+	.intro__stage {
+		position: sticky;
+		top: 0;
 		display: flex;
 		flex-direction: column;
-		align-items: center;
-		gap: var(--space-sm);
-		height: 100svh;
-		padding: var(--space-md);
-		overflow: hidden;
-	}
-
-	.scene {
-		position: absolute;
-		inset: 0;
-		z-index: 2;
-		pointer-events: none;
-		filter:
-			drop-shadow(0 0 1.5rem #ff2a2a)
-			drop-shadow(0 0 4rem #ff2a2a)
-			drop-shadow(0 0 8rem rgb(255 42 42 / 70%));
-	}
-
-	.hero-stage {
-		position: relative;
-		z-index: 1;
-		flex: 1 1 auto;
-		min-height: 0;
-		width: 100%;
-		display: flex;
-		align-items: center;
 		justify-content: center;
+		gap: calc(var(--u) * 1.75);
+		height: 100svh;
+		padding-block: calc(var(--u) * 2);
 	}
 
 	.hero {
-		text-align: center;
-	}
-
-	.hero__title {
-		margin: 0;
-		font-family: var(--font-atures);
-		font-weight: 900;
-		text-transform: uppercase;
-		color: #fff;
-		font-size: clamp(2rem, 8vw, 6rem);
-		line-height: 0.95;
-	}
-
-	.hero__byline {
-		margin: var(--space-sm) 0 0;
-		font-family: var(--font-starjhol);
-		color: transparent;
-		-webkit-text-stroke: 1px var(--color-star-wars-yellow);
-		font-size: clamp(1.1rem, 2.5vw, 2rem);
-		letter-spacing: 0.05em;
-	}
-
-	.factions {
-		position: relative;
-		z-index: 3;
-		flex: 0 0 auto;
-		width: 100%;
-	}
-
-	.faction-row {
 		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	/* Reserves the space for the 3D name, which is drawn on the canvas behind it */
+	.hero__name-slot {
+		width: min(90vw, calc(var(--u) * 64), calc(19svh * var(--name-aspect, 8)));
+		aspect-ratio: var(--name-aspect, 8);
+		margin-top: calc(var(--name-trim-top, 0px) * -1);
+		margin-bottom: calc(var(--name-trim-bottom, 0px) * -1);
+	}
+
+	.hero__role {
+		margin: calc(var(--u) * 1.3) 0 0;
+		padding-inline: 1rem;
+		color: var(--color-steel);
+		font-size: max(1.1rem, calc(var(--u) * 1.45));
+		font-weight: 500;
+		letter-spacing: 0.12em;
+		text-align: center;
+		text-shadow: 0 0 1.25rem rgba(0, 0, 0, 0.85);
+		opacity: var(--reveal-role, 1);
+		translate: 0 calc((1 - var(--reveal-role, 1)) * 1.5rem);
+	}
+
+	/* Small hint at the bottom of the first screen */
+	.scroll-hint {
+		position: absolute;
+		bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+		left: 50%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.6rem;
+		padding-left: 0.3em;
+		color: var(--color-steel);
+		font-size: 0.95rem;
+		letter-spacing: 0.3em;
+		opacity: 0;
+		translate: -50% 0.75rem;
+		pointer-events: none;
+	}
+
+	.scroll-hint__line {
+		position: relative;
+		width: 1px;
+		height: 2.75rem;
+		overflow: hidden;
+		background: rgb(179 187 197 / 0.25);
+	}
+
+	.scroll-hint__line::after {
+		position: absolute;
+		top: -40%;
+		left: 0;
+		width: 100%;
+		height: 40%;
+		content: '';
+		background: linear-gradient(rgb(255 255 255 / 0), #fff);
+		animation: hint-drop 1.8s ease-in-out infinite;
+	}
+
+	@keyframes hint-drop {
+		to {
+			top: 100%;
+		}
+	}
+
+	/* Sections after the hero */
+	.section {
+		min-height: 100lvh;
+		padding: clamp(5rem, 14vh, 9rem) clamp(1.25rem, 5vw, 4rem);
+		pointer-events: auto;
+	}
+
+	.section__title {
+		margin: 0 0 1rem;
+		color: var(--color-bone);
+		font-family: var(--font-display);
+		font-size: clamp(1.8rem, 1rem + 3vw, 3.2rem);
+		font-weight: 400;
+		text-shadow: 0 0 1.5rem rgba(0, 0, 0, 0.9);
+	}
+
+	.section__text {
+		max-width: 38rem;
+		margin: 0;
+		color: var(--color-steel);
+		font-size: 1.2rem;
+		line-height: 1.5;
+		text-shadow: 0 0 1rem rgba(0, 0, 0, 0.9);
+	}
+
+	/* Glass cards */
+	.skills {
+		display: grid;
+		place-items: center;
+		pointer-events: auto;
+	}
+
+	.skills__list {
+		position: relative;
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, calc(var(--u) * 18)));
+		gap: calc(var(--u) * 3);
 		justify-content: center;
-		align-items: flex-end;
-		gap: 10%;
-		max-width: 55rem;
-		margin-inline: auto;
-		padding: 0;
+		width: 100%;
+		margin: 0;
+		padding: var(--u) clamp(1.25rem, 5vw, 4rem) calc(var(--u) * 2.5);
 		list-style: none;
 	}
 
-	.faction-card {
-		--stagger: 0px;
+	/* Cards slide up and fade in as you scroll (the opacity sits on the glass itself so the blur keeps working) */
+	.skills__item {
+		translate: 0 calc((1 - var(--reveal, 1)) * 3rem);
+	}
+	.glass-card__tab,
+	.glass-card__panel {
+		opacity: var(--reveal, 1);
+	}
 
+	.skills__item--blue {
+		--tint: 56 140 255;
+		--tint-soft: 200 224 255;
+	}
+	.skills__item--green {
+		--tint: 46 214 110;
+		--tint-soft: 204 255 222;
+		transform: translateY(calc(var(--u) * 2.5));
+	}
+	.skills__item--red {
+		--tint: 255 48 40;
+		--tint-soft: 255 214 220;
+	}
+
+	/* Inside a card everything is in em, and the card's font-size is the fluid unit */
+	.glass-card {
+		position: relative;
+		height: 100%;
+		padding-top: 1.1em;
+		font-size: var(--u);
+		animation: glass-float 8s ease-in-out infinite;
+	}
+
+	.skills__item--green .glass-card {
+		animation-delay: -2.7s;
+	}
+	.skills__item--red .glass-card {
+		animation-delay: -5.3s;
+	}
+
+	@keyframes glass-float {
+		0%,
+		100% {
+			transform: translateY(0);
+		}
+		50% {
+			transform: translateY(-0.8em);
+		}
+	}
+
+	/* The small glass square: sits behind the big one and pokes out of the top */
+	.glass-card__tab {
+		position: absolute;
+		top: 0;
+		left: 50%;
+		width: 46%;
+		aspect-ratio: 1;
+		overflow: hidden;
+		background:
+			linear-gradient(150deg, rgb(255 255 255 / 0.24), rgb(255 255 255 / 0) 45%),
+			linear-gradient(180deg, rgb(var(--tint) / 0.6), rgb(var(--tint) / 0.24));
+		border: 1px solid rgb(var(--tint-soft) / 0.5);
+		box-shadow:
+			0 0 1.4em rgb(var(--tint) / 0.35),
+			inset 0 1px 0 rgb(255 255 255 / 0.4),
+			inset 0 0 1.25em rgb(255 255 255 / 0.07);
+		transform: translateX(-50%);
+		-webkit-backdrop-filter: blur(6px) saturate(1.3);
+		backdrop-filter: blur(6px) saturate(1.3);
+	}
+
+	.glass-card__panel {
 		position: relative;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		justify-content: center;
-		flex: 0 0 auto;
-		width: 13rem;
-		/* min-height: 14rem; */
-		padding: var(--space-xs);
+		height: 100%;
+		min-height: 17em;
+		padding: 2.6em 1.75em 2.4em;
+		overflow: hidden;
 		text-align: center;
-		color: #fff;
-		background: linear-gradient(145deg, var(--faction-grad-from), var(--faction-grad-to));
-		border: 1px solid var(--faction-edge);
+		background:
+			radial-gradient(ellipse 70% 60% at 50% 0%, rgb(var(--tint) / 0.26), transparent 72%),
+			linear-gradient(180deg, rgb(var(--tint) / 0.1), rgb(8 10 18 / 0.55) 45%, rgb(8 10 18 / 0.62));
+		border: 1px solid rgb(var(--tint) / 0.32);
 		box-shadow:
-			0 0 30px var(--faction-glow),
-			inset 0 0 30px rgb(0 0 0 / 25%);
-		transform: translateY(var(--stagger));
-		animation: float 5s ease-in-out infinite;
+			inset 0 1px 0 rgb(255 255 255 / 0.16),
+			inset 0 0 2.5em rgb(255 255 255 / 0.03),
+			0 1.5em 3em rgb(0 0 0 / 0.45);
+		-webkit-backdrop-filter: blur(12px) saturate(1.3);
+		backdrop-filter: blur(12px) saturate(1.3);
 	}
 
-	.faction-card::before {
-		content: '';
+	/* Frosted grain, the "cloudy" part of the glass */
+	.glass-card__tab::before,
+	.glass-card__panel::before {
 		position: absolute;
-		top: -6px;
-		left: 30%;
-		width: 5rem;
-		height: 6px;
-		background: var(--faction-tab);
-		border: 1px solid var(--faction-tab-edge);
-		border-bottom: none;
+		inset: 0;
+		content: '';
+		background-image: var(--grain);
+		opacity: 0.14;
+		mix-blend-mode: overlay;
+		pointer-events: none;
 	}
 
-	.faction-card--designer {
-		--faction-grad-from: rgb(90 10 35 / 75%);
-		--faction-grad-to: rgb(35 8 17 / 85%);
-		--faction-edge: rgb(180 120 140 / 25%);
-		--faction-glow: rgb(100 0 35 / 15%);
-		--faction-tab: #4c1028;
-		--faction-tab-edge: rgb(180 120 140 / 20%);
-		--faction-symbol-cut: #5a102d;
-		height: 16rem;
+	.glass-card__icon {
+		position: relative;
+		width: 3.5em;
+		height: 3.5em;
+		margin-bottom: 1.6em;
+		color: rgb(var(--tint-soft));
+		filter: drop-shadow(0 0 0.9em rgb(var(--tint) / 0.9));
 	}
 
-	.faction-card--photographer {
-		--stagger: 0.75rem;
-		--faction-grad-from: rgb(12 70 42 / 75%);
-		--faction-grad-to: rgb(8 30 20 / 85%);
-		--faction-edge: rgb(120 180 150 / 25%);
-		--faction-glow: rgb(0 100 55 / 15%);
-		--faction-tab: #103a28;
-		--faction-tab-edge: rgb(120 180 150 / 20%);
-		--faction-symbol-cut: #0d3a24;
-		height: 14rem;
-		margin-bottom: 1rem;
+	.glass-card__title {
+		position: relative;
+		margin: 0 0 0.5em;
+		color: #fff;
+		font-size: 1.75em;
+		font-weight: 700;
+		letter-spacing: 0.02em;
 	}
 
-	.faction-card--developer {
-		--faction-grad-from: rgb(20 45 90 / 75%);
-		--faction-grad-to: rgb(8 18 35 / 85%);
-		--faction-edge: rgb(120 145 190 / 25%);
-		--faction-glow: rgb(0 45 110 / 15%);
-		--faction-tab: #10284c;
-		--faction-tab-edge: rgb(120 145 190 / 20%);
-		--faction-symbol-cut: #102d5a;
-		height: 16rem;
-	}
-
-	.faction-card__symbol {
-		width: 2.6rem;
-		height: 2.6rem;
-		margin-bottom: var(--space-2xs);
-		filter: drop-shadow(0 0 6px rgb(255 255 255 / 45%));
-	}
-
-	.faction-card__burst,
-	.faction-card__core {
-		fill: #fff;
-	}
-
-	.faction-card__cut {
-		fill: var(--faction-symbol-cut);
-	}
-
-	.faction-card__name {
+	.glass-card__text {
+		position: relative;
 		margin: 0;
-		font-family: var(--font-crawl);
-		font-weight: 500;
-		font-size: 1.25rem;
-		letter-spacing: -0.02em;
-	}
-
-	.faction-card__description {
-		max-width: 8rem;
-		margin: 0.7rem 0 0;
-		color: rgb(255 255 255 / 85%);
-		font-family: var(--font-crawl);
-		font-size: 0.5625rem;
+		max-width: 17em;
+		color: rgb(232 234 240 / 0.88);
+		font-size: 1.1em;
 		line-height: 1.45;
 		text-wrap: balance;
 	}
 
-	@keyframes float {
-		0%,
-		100% {
-			transform: translateY(var(--stagger));
+	.work {
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+	}
+
+	.work-list {
+		display: grid;
+		gap: 1.75rem;
+		max-width: 34rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.work-list__title {
+		margin: 0 0 0.25rem;
+		color: var(--color-bone);
+		font-size: 1.4rem;
+		font-weight: 700;
+	}
+
+	.contact {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+	}
+
+	/* Phones and small tablets: the cards become a swipeable row so they still fit the first screen */
+	@media (max-width: 60rem) {
+		.skills__list {
+			grid-template-columns: none;
+			grid-auto-columns: min(80vw, calc(var(--u) * 21));
+			grid-auto-flow: column;
+			gap: calc(var(--u) * 1.25);
+			justify-content: start;
+			padding: calc(var(--u) * 1.25) calc((100% - min(80vw, calc(var(--u) * 21))) / 2)
+				calc(var(--u) * 2.5);
+			overflow-x: auto;
+			overscroll-behavior-x: contain;
+			scroll-snap-type: x mandatory;
+			scrollbar-width: none;
 		}
-		50% {
-			transform: translateY(calc(var(--stagger) - 0.6rem));
+		.skills__list::-webkit-scrollbar {
+			display: none;
+		}
+		.skills__item {
+			scroll-snap-align: center;
+		}
+		.skills__item--green {
+			transform: translateY(calc(var(--u) * 1.5));
 		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.faction-card {
+		.glass-card,
+		.scroll-hint__line::after {
 			animation: none;
 		}
 	}
