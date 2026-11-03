@@ -527,8 +527,9 @@ export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, sc
 
 	function updateBlade(sb, t) {
 		const e = t - sb.igniteAt;
-		const len = (e >= 0 ? 1 : 0) * sb.pose.len;
-		let hum = smooth(clamp(e / FADE_FOR, 0, 1));
+		const rise = clamp(e / FADE_FOR, 0, 1);
+		const len = (1 - Math.pow(1 - rise, 3)) * sb.pose.len;
+		let hum = smooth(clamp(rise / 0.4, 0, 1));
 		if (!reduceMotion) hum *= 1 - PULSE_DEPTH * (0.5 - 0.5 * Math.cos((t * Math.PI * 2) / 2.6 + sb.spec.side * 1.3));
 		const f = t - sb.flickerAt;
 		const dip = f >= 0.55 ? f - 0.55 : f;
