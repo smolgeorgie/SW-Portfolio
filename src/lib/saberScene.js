@@ -1,4 +1,4 @@
-// @ts-nocheck -- ported prototype code; typing every scratch object isn't worth the noise.
+// @ts-nocheck
 import * as THREE from 'three';
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -23,11 +23,7 @@ const NAME_COLOUR = 0xffe81f;
 
 const LEGACY = Math.PI;
 
-/**
- * @param {{ canvas: HTMLCanvasElement, intro: HTMLElement, nameSlot: HTMLElement, role: HTMLElement,
- *   skillsList: HTMLElement, scrollHint: HTMLElement, workSection: HTMLElement }} els
- */
-export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, scrollHint, workSection }) {
+export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, scrollHint, workSection, onIgnited }) {
 	const root = document.documentElement;
 	const cardItems = Array.from(skillsList.children);
 	const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -38,8 +34,8 @@ export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, sc
 	try {
 		renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 	} catch {
-		// Without 3D the page still works: the role and cards are simply shown.
 		scrollHint.style.opacity = '1';
+		onIgnited();
 		return () => {};
 	}
 
@@ -161,7 +157,7 @@ export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, sc
 		return new THREE.LatheGeometry(pts, 32);
 	}
 
-	const bladeVertex = /* glsl */ `
+	const bladeVertex = `
 		uniform float uLength;
 		varying vec3 vN;
 		varying vec3 vV;
@@ -174,7 +170,7 @@ export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, sc
 			gl_Position = projectionMatrix * mv;
 		}`;
 
-	const coreFragment = /* glsl */ `
+	const coreFragment = `
 		uniform vec3 uEdge;
 		uniform float uFlicker;
 		varying vec3 vN;
@@ -185,7 +181,7 @@ export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, sc
 			gl_FragColor = vec4(col * uFlicker, 1.0);
 		}`;
 
-	const glowFragment = /* glsl */ `
+	const glowFragment = `
 		uniform vec3 uColor;
 		uniform float uPower;
 		uniform float uIntensity;
@@ -245,7 +241,6 @@ export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, sc
 				uniforms: coreUniforms,
 				vertexShader: bladeVertex,
 				fragmentShader: coreFragment,
-				// Additive, so a dimmed core fades into the dark instead of showing as a black stick.
 				transparent: true,
 				blending: THREE.AdditiveBlending
 			})
@@ -473,7 +468,6 @@ export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, sc
 	let workTop = 2;
 	let maxScroll = 3;
 
-	// The crossed pose: tilted toward the screen corners and sized to fill most of the screen.
 	function measureSabers() {
 		const W = view.visW;
 		const H = view.visH;
@@ -483,7 +477,6 @@ export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, sc
 		const byWidth = (W * 0.98) / (total * Math.sin(X.angle));
 		X.sc = clamp(Math.min(byHeight, byWidth), 0.6, 2.4);
 		X.s0 = SABER.blade * 0.55;
-		// The blades cross a bit above the middle of each saber, so lift the crossing to centre the whole X.
 		X.cy = (X.s0 - (SABER.blade - SABER.hilt) / 2) * X.sc * Math.cos(X.angle);
 	}
 
@@ -732,6 +725,9 @@ export function createSaberScene({ canvas, intro, nameSlot, role, skillsList, sc
 			}, START_DELAY)
 		);
 		timers.push(setTimeout(() => (hintShown = true), START_DELAY + 1500));
+		timers.push(setTimeout(onIgnited, START_DELAY + FADE_FOR * 1000));
+	} else {
+		onIgnited();
 	}
 
 	document.fonts

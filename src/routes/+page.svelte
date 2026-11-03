@@ -2,12 +2,30 @@
 	import { onMount } from 'svelte';
 	import { createSaberScene } from '$lib/saberScene.js';
 
+	const copy = {
+		en: {
+			role: 'Frontend Developer and Marketer',
+			skills: 'What I do',
+			work: 'Work',
+			contact: 'Contact'
+		},
+		nl: {
+			role: 'Frontend Developer en Marketeer',
+			skills: 'Wat ik doe',
+			work: 'Werk',
+			contact: 'Contact'
+		}
+	};
+
 	const skills = [
 		{
 			id: 'marketing',
 			tint: 'blue',
-			title: 'Marketing',
-			text: 'Content that knows who it’s for and why they’d care.',
+			title: { en: 'Marketing', nl: 'Marketing' },
+			text: {
+				en: 'Content that knows who it’s for and why they’d care.',
+				nl: 'Content die weet voor wie het is en waarom het hen iets kan schelen.'
+			},
 			icon: [
 				'M6 19v10h7l15 9V10l-15 9Z',
 				'M13 29l3 11h5l-2.5-10',
@@ -18,8 +36,11 @@
 		{
 			id: 'design',
 			tint: 'green',
-			title: 'Design',
-			text: 'Designs that make sense for the people using them.',
+			title: { en: 'Design', nl: 'Design' },
+			text: {
+				en: 'Designs that make sense for the people using them.',
+				nl: 'Ontwerpen die logisch zijn voor de mensen die ze gebruiken.'
+			},
 			icon: [
 				'M24 5 36 21l-5.5 17h-13L12 21Z',
 				'M24 5v15.5',
@@ -30,8 +51,11 @@
 		{
 			id: 'development',
 			tint: 'red',
-			title: 'Development',
-			text: 'Fast and accessible websites that work for everyone.',
+			title: { en: 'Development', nl: 'Development' },
+			text: {
+				en: 'Fast and accessible websites that work for everyone.',
+				nl: 'Snelle, toegankelijke websites die voor iedereen werken.'
+			},
 			icon: ['M16 14 6 24l10 10', 'M32 14l10 10-10 10', 'M27.5 9 20.5 39']
 		}
 	];
@@ -51,13 +75,51 @@
 	/** @type {HTMLElement} */
 	let workSection;
 
+	const LANG_KEY = 'language';
+	/** @type {'en' | 'nl'} */
+	let lang = $state('en');
+	let showLanguage = $state(false);
+
+	/** @param {'en' | 'nl'} choice */
+	function chooseLanguage(choice) {
+		lang = choice;
+		document.documentElement.lang = choice;
+		showLanguage = false;
+		try {
+			localStorage.setItem(LANG_KEY, choice);
+		} catch {
+			// Private mode can block storage; the choice still applies for this visit.
+		}
+	}
+
 	onMount(() => {
+		let saved = null;
+		try {
+			saved = localStorage.getItem(LANG_KEY);
+		} catch {
+			saved = null;
+		}
+		if (saved === 'en' || saved === 'nl') chooseLanguage(saved);
+		// Ask for a language once the sabers are fully up, unless it was chosen on an earlier visit.
+		const onIgnited = () => {
+			if (!saved) showLanguage = true;
+		};
+
 		// On phones, start the swipeable row on the middle (green) card.
 		if (skillsList.scrollWidth > skillsList.clientWidth + 2) {
 			const middle = /** @type {HTMLElement} */ (skillsList.children[1]);
 			skillsList.scrollLeft = middle.offsetLeft - (skillsList.clientWidth - middle.offsetWidth) / 2;
 		}
-		return createSaberScene({ canvas, intro, nameSlot, role, skillsList, scrollHint, workSection });
+		return createSaberScene({
+			canvas,
+			intro,
+			nameSlot,
+			role,
+			skillsList,
+			scrollHint,
+			workSection,
+			onIgnited
+		});
 	});
 </script>
 
@@ -74,17 +136,35 @@
 
 <canvas class="scene" aria-hidden="true" bind:this={canvas}></canvas>
 
+{#if showLanguage}
+	<!-- First in the page so keyboard users reach it straight away; it doesn't steal focus while someone reads. -->
+	<div class="language glass-card__panel" role="dialog" aria-labelledby="language-title">
+		<h2 class="language__title" id="language-title">
+			<span lang="nl">Kies een taal</span> / <span lang="en">Choose a language</span>
+		</h2>
+		<div class="language__options">
+			<button class="language__option" type="button" lang="en" onclick={() => chooseLanguage('en')}>
+				English
+			</button>
+			<button class="language__option" type="button" lang="nl" onclick={() => chooseLanguage('nl')}>
+				Nederlands
+			</button>
+		</div>
+	</div>
+{/if}
+
 <main class="page">
 	<div class="intro" bind:this={intro}>
+		<div class="intro__snap" aria-hidden="true"></div>
 		<div class="intro__stage">
 			<section class="hero" aria-labelledby="hero-name">
 				<h1 class="visually-hidden" id="hero-name">Ilona van Oosbree</h1>
 				<div class="hero__name-slot" aria-hidden="true" bind:this={nameSlot}></div>
-				<p class="hero__role" bind:this={role}>Frontend Developer and Marketer</p>
+				<p class="hero__role" bind:this={role}>{copy[lang].role}</p>
 			</section>
 
 			<section class="skills" id="skills" aria-labelledby="skills-title">
-				<h2 class="visually-hidden" id="skills-title">What I do</h2>
+				<h2 class="visually-hidden" id="skills-title">{copy[lang].skills}</h2>
 				<ul class="skills__list" bind:this={skillsList}>
 					{#each skills as skill (skill.id)}
 						<li class="skills__item skills__item--{skill.tint}">
@@ -105,8 +185,8 @@
 											<path {d} />
 										{/each}
 									</svg>
-									<h3 class="glass-card__title" id="skill-{skill.id}">{skill.title}</h3>
-									<p class="glass-card__text">{skill.text}</p>
+									<h3 class="glass-card__title" id="skill-{skill.id}">{skill.title[lang]}</h3>
+									<p class="glass-card__text">{skill.text[lang]}</p>
 								</div>
 							</article>
 						</li>
@@ -122,7 +202,7 @@
 	</div>
 
 	<section class="section work" id="work" aria-labelledby="work-title" bind:this={workSection}>
-		<h2 class="section__title" id="work-title">Work</h2>
+		<h2 class="section__title" id="work-title">{copy[lang].work}</h2>
 		<ul class="work-list">
 			{#each [1, 2, 3] as n (n)}
 				<li>
@@ -134,7 +214,7 @@
 	</section>
 
 	<section class="section contact" id="contact" aria-labelledby="contact-title">
-		<h2 class="section__title" id="contact-title">Contact</h2>
+		<h2 class="section__title" id="contact-title">{copy[lang].contact}</h2>
 		<p class="section__text">[Your email or socials]</p>
 	</section>
 </main>
@@ -153,9 +233,17 @@
 		padding-bottom: env(safe-area-inset-bottom, 0px);
 	}
 
+	/* Scrolling snaps to: the crossed sabers, the fully revealed first screen, Work and Contact */
 	:global(html) {
 		background: var(--color-void);
 		scroll-padding-top: env(safe-area-inset-top, 0px);
+		scroll-snap-type: y proximity;
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		:global(html) {
+			scroll-behavior: smooth;
+		}
 	}
 
 	:global(body) {
@@ -208,6 +296,16 @@
 		--u: clamp(0.875rem, min(0.375rem + 1vw, 2.7svh), 2.1rem);
 		position: relative;
 		height: 200svh;
+		scroll-snap-align: start;
+	}
+
+	/* Snap point where the reveal is complete: the bottom of the track lines up with the bottom of the screen */
+	.intro__snap {
+		position: absolute;
+		bottom: 0;
+		width: 1px;
+		height: 1px;
+		scroll-snap-align: end;
 	}
 
 	.intro__stage {
@@ -293,6 +391,7 @@
 
 	/* Sections after the hero */
 	.section {
+		scroll-snap-align: start;
 		min-height: 100lvh;
 		padding: clamp(5rem, 14vh, 9rem) clamp(1.25rem, 5vw, 4rem);
 		pointer-events: auto;
@@ -497,6 +596,63 @@
 		text-align: center;
 	}
 
+	/* Language popover: the same glass panel as the cards, without the little square */
+	.language {
+		--tint: 200 214 235;
+		position: fixed;
+		top: 50%;
+		left: 50%;
+		z-index: 3;
+		gap: 1.25rem;
+		width: min(24rem, calc(100vw - 2rem));
+		height: auto;
+		min-height: 0;
+		padding: 2rem 1.75rem;
+		translate: -50% -50%;
+		animation: language-in 0.6s ease-out both;
+	}
+
+	@keyframes language-in {
+		from {
+			opacity: 0;
+			translate: -50% calc(-50% + 1rem);
+		}
+	}
+
+	.language__title {
+		position: relative;
+		margin: 0;
+		color: var(--color-bone);
+		font-size: 1.35rem;
+		font-weight: 700;
+		letter-spacing: 0.02em;
+	}
+
+	.language__options {
+		position: relative;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+		justify-content: center;
+	}
+
+	.language__option {
+		min-height: 44px;
+		padding: 0.6rem 1.3rem;
+		color: var(--color-bone);
+		font: inherit;
+		font-size: 1.1rem;
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		background: rgb(255 255 255 / 0.08);
+		border: 1px solid rgb(255 255 255 / 0.25);
+		cursor: pointer;
+	}
+
+	.language__option:hover {
+		background: rgb(255 255 255 / 0.16);
+	}
+
 	/* Phones and small tablets: the cards become a swipeable row so they still fit the first screen */
 	@media (max-width: 60rem) {
 		.skills__list {
@@ -525,6 +681,7 @@
 
 	@media (prefers-reduced-motion: reduce) {
 		.glass-card,
+		.language,
 		.scroll-hint__line::after {
 			animation: none;
 		}
